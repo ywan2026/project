@@ -1,0 +1,684 @@
+<!doctype html>
+<html lang="ko" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>시험 핵심 개념 공유 게시판</title>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="/_sdk/data_sdk.js"></script>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&amp;family=Gowun+Dodum&amp;display=swap" rel="stylesheet">
+  <style>
+  body {
+    font-family: 'Gowun Dodum', sans-serif;
+  }
+  .handwriting {
+    font-family: 'Gaegu', cursive;
+  }
+  .paper-texture {
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 31px, rgba(59, 130, 246, 0.08) 31px, rgba(59, 130, 246, 0.08) 32px);
+  }
+  .tape {
+    position: absolute;
+    width: 70px;
+    height: 20px;
+    background: rgba(250, 204, 21, 0.5);
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%) rotate(-2deg);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  .post-card {
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+  }
+  .post-card:hover {
+    transform: translateY(-4px) rotate(0deg) !important;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.15);
+    z-index: 10;
+  }
+  .like-btn.liked {
+    animation: pop 0.4s ease;
+  }
+  @keyframes pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+    100% { transform: scale(1); }
+  }
+  .heart-fly {
+    position: absolute;
+    pointer-events: none;
+    animation: fly 0.8s ease-out forwards;
+  }
+  @keyframes fly {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-40px) scale(1.8); }
+  }
+  .subject-tab {
+    transition: all 0.2s ease;
+  }
+  .subject-tab.active {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 14px rgba(0,0,0,0.12);
+  }
+  .modal-backdrop {
+    animation: fadeIn 0.2s ease;
+  }
+  .modal-content {
+    animation: slideUp 0.3s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .toast {
+    animation: toastIn 0.3s ease, toastOut 0.3s ease 2.2s forwards;
+  }
+  @keyframes toastIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes toastOut { to { opacity: 0; transform: translateY(20px); } }
+  .spinner {
+    border: 3px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .fade-in { animation: fadeInUp 0.4s ease; }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  textarea, input { font-family: 'Gowun Dodum', sans-serif; }
+</style>
+  <style>body { box-sizing: border-box; }</style>
+ </head>
+ <body class="h-full w-full overflow-auto" style="background-color: #fef9e7;">
+  <div id="app-wrapper" class="h-full w-full overflow-auto" style="background: linear-gradient(135deg, #fef9e7 0%, #fde8d4 100%);">
+   <!-- Decorative dots pattern -->
+   <div class="fixed inset-0 pointer-events-none opacity-30" style="background-image: radial-gradient(circle, #d97706 1px, transparent 1px); background-size: 30px 30px;"></div>
+   <main class="relative max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+    <!-- Header -->
+    <header class="text-center mb-8 sm:mb-10">
+     <div class="inline-block mb-3 px-4 py-1 rounded-full" style="background-color: #fbbf24;">
+      <span class="handwriting text-lg font-bold" style="color: #78350f;">📚 STUDY TOGETHER</span>
+     </div>
+     <h1 id="board-title-el" class="handwriting text-4xl sm:text-5xl md:text-6xl font-bold mb-2" style="color: #7c2d12;">시험 핵심 개념 공유 게시판</h1>
+     <p id="board-subtitle-el" class="text-sm sm:text-base" style="color: #92400e;">친구들과 함께 중요한 개념을 나눠보세요 ✏️</p>
+    </header><!-- Subject Tabs -->
+    <nav class="flex flex-wrap justify-center gap-2 sm:gap-3 mb-6" aria-label="과목 선택">
+     <button data-subject="전체" class="subject-tab active px-5 py-2.5 rounded-full font-bold text-sm sm:text-base border-2" style="background-color: #7c2d12; color: #fef9e7; border-color: #7c2d12;"> <i data-lucide="layout-grid" class="inline w-4 h-4 mr-1"></i>전체 </button> <button data-subject="국어" class="subject-tab px-5 py-2.5 rounded-full font-bold text-sm sm:text-base border-2 bg-white" style="color: #be123c; border-color: #be123c;"> 📖 국어 </button> <button data-subject="영어" class="subject-tab px-5 py-2.5 rounded-full font-bold text-sm sm:text-base border-2 bg-white" style="color: #1d4ed8; border-color: #1d4ed8;"> 🔤 영어 </button> <button data-subject="수학" class="subject-tab px-5 py-2.5 rounded-full font-bold text-sm sm:text-base border-2 bg-white" style="color: #15803d; border-color: #15803d;"> 🔢 수학 </button> <button data-subject="과학" class="subject-tab px-5 py-2.5 rounded-full font-bold text-sm sm:text-base border-2 bg-white" style="color: #a16207; border-color: #a16207;"> 🔬 과학 </button>
+    </nav><!-- Stats + Post button -->
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-3 mb-6 p-4 rounded-2xl bg-white/60 backdrop-blur border-2 border-dashed" style="border-color: #d97706;">
+     <div class="flex items-center gap-4 text-sm sm:text-base flex-wrap justify-center">
+      <span class="flex items-center gap-1.5" style="color: #78350f;"> <i data-lucide="file-text" class="w-4 h-4"></i> <span>총 <strong id="total-count">0</strong>개의 개념</span> </span> <span class="flex items-center gap-1.5" style="color: #78350f;"> <i data-lucide="heart" class="w-4 h-4"></i> <span><strong id="total-likes">0</strong>개의 좋아요</span> </span>
+     </div>
+     <div class="flex items-center gap-2 flex-wrap justify-center"><button id="sort-btn" class="flex items-center gap-1 px-4 py-2.5 rounded-full font-semibold text-sm border-2 bg-white transition-all hover:shadow-md" style="border-color: #fbbf24; color: #78350f;"> <i data-lucide="arrow-down-up" class="w-4 h-4"></i> <span id="sort-label">최신순</span> </button> <button id="admin-btn" class="flex items-center gap-1 px-4 py-2.5 rounded-full font-semibold text-sm border-2 bg-white transition-all hover:shadow-md" style="border-color: #78350f; color: #78350f;"> <i data-lucide="lock" class="w-4 h-4"></i> 관리자 </button> <button id="new-post-btn" class="flex items-center gap-2 px-5 py-2.5 rounded-full font-bold text-white shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5" style="background-color: #dc2626;"> <i data-lucide="pen-line" class="w-4 h-4"></i> <span id="post-btn-text">개념 올리기</span> </button>
+     </div>
+    </div><!-- Posts grid -->
+    <section id="posts-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6" aria-label="개념 게시글 목록"></section><!-- Empty state -->
+    <div id="empty-state" class="hidden text-center py-16">
+     <div class="text-6xl mb-4">
+      📝
+     </div>
+     <p class="handwriting text-2xl mb-2" style="color: #7c2d12;">아직 올라온 개념이 없어요!</p>
+     <p class="text-sm" style="color: #92400e;">첫 번째로 중요한 개념을 공유해보세요 ✨</p>
+    </div>
+   </main>
+   <footer class="text-center py-6 text-xs" style="color: #92400e;">
+    함께 공부하면 더 재밌어요 💛
+   </footer>
+  </div><!-- New Post Modal -->
+  <div id="post-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop" style="background-color: rgba(0,0,0,0.5);">
+   <div class="modal-content bg-white rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden">
+    <div class="px-6 py-4 flex items-center justify-between border-b-2 border-dashed" style="background-color: #fef3c7; border-color: #fbbf24;">
+     <h2 class="handwriting text-2xl font-bold" style="color: #7c2d12;">✏️ 새로운 개념 올리기</h2><button id="close-modal" class="p-1.5 rounded-full hover:bg-black/10" aria-label="닫기"> <i data-lucide="x" class="w-5 h-5" style="color: #7c2d12;"></i> </button>
+    </div>
+    <form id="post-form" class="p-6 space-y-4">
+     <div>
+      <label class="block text-sm font-bold mb-2" style="color: #7c2d12;">과목 선택</label>
+      <div class="grid grid-cols-4 gap-2" role="radiogroup">
+       <label class="subject-choice cursor-pointer"> <input type="radio" name="subject" value="국어" class="sr-only peer" required>
+        <div class="text-center py-3 rounded-xl border-2 font-bold text-sm transition-all peer-checked:shadow-md" style="border-color: #fecdd3; color: #be123c;">
+         📖<br>
+          국어
+        </div></label> <label class="subject-choice cursor-pointer"> <input type="radio" name="subject" value="영어" class="sr-only peer">
+        <div class="text-center py-3 rounded-xl border-2 font-bold text-sm transition-all peer-checked:shadow-md" style="border-color: #bfdbfe; color: #1d4ed8;">
+         🔤<br>
+          영어
+        </div></label> <label class="subject-choice cursor-pointer"> <input type="radio" name="subject" value="수학" class="sr-only peer">
+        <div class="text-center py-3 rounded-xl border-2 font-bold text-sm transition-all peer-checked:shadow-md" style="border-color: #bbf7d0; color: #15803d;">
+         🔢<br>
+          수학
+        </div></label> <label class="subject-choice cursor-pointer"> <input type="radio" name="subject" value="과학" class="sr-only peer">
+        <div class="text-center py-3 rounded-xl border-2 font-bold text-sm transition-all peer-checked:shadow-md" style="border-color: #fde68a; color: #a16207;">
+         🔬<br>
+          과학
+        </div></label>
+      </div>
+     </div>
+     <div>
+      <label for="title-input" class="block text-sm font-bold mb-2" style="color: #7c2d12;">핵심 개념 제목</label> <input id="title-input" name="title" type="text" required maxlength="40" placeholder="예: 이차함수의 그래프" class="w-full px-4 py-2.5 rounded-xl border-2 outline-none focus:ring-2" style="border-color: #fbbf24;">
+     </div>
+     <div>
+      <label for="content-input" class="block text-sm font-bold mb-2" style="color: #7c2d12;">내용</label> <textarea id="content-input" name="content" required maxlength="300" rows="5" placeholder="시험에 나올 것 같은 중요한 개념을 적어주세요!" class="w-full px-4 py-2.5 rounded-xl border-2 outline-none focus:ring-2 resize-none" style="border-color: #fbbf24;"></textarea>
+      <div class="text-right text-xs mt-1" style="color: #92400e;"><span id="char-count">0</span>/300
+      </div>
+     </div>
+     <div>
+      <label for="author-input" class="block text-sm font-bold mb-2" style="color: #7c2d12;">작성자 (닉네임)</label> <input id="author-input" name="author" type="text" required maxlength="15" placeholder="닉네임" class="w-full px-4 py-2.5 rounded-xl border-2 outline-none focus:ring-2" style="border-color: #fbbf24;">
+     </div>
+     <div class="flex gap-3 pt-2">
+      <button type="button" id="cancel-btn" class="flex-1 py-2.5 rounded-xl font-bold border-2" style="border-color: #d6d3d1; color: #57534e;">취소</button> <button type="submit" id="submit-btn" class="flex-1 py-2.5 rounded-xl font-bold text-white shadow-md flex items-center justify-center gap-2" style="background-color: #dc2626;"> <span id="submit-text">올리기</span> </button>
+     </div>
+    </form>
+   </div>
+  </div><!-- Toast container -->
+  <div id="toast-container" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] space-y-2 pointer-events-none"></div><!-- Admin Login Modal -->
+  <div id="admin-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop" style="background-color: rgba(0,0,0,0.5);">
+   <div class="modal-content bg-white rounded-2xl max-w-sm w-full shadow-2xl overflow-hidden">
+    <div class="px-6 py-4 border-b-2 border-dashed" style="background-color: #fef3c7; border-color: #fbbf24;">
+     <h2 class="handwriting text-2xl font-bold" style="color: #7c2d12;">🔐 관리자 로그인</h2>
+    </div>
+    <div class="p-6 space-y-4"><input id="admin-password-input" type="password" placeholder="비밀번호 입력" class="w-full px-4 py-2.5 rounded-xl border-2 outline-none focus:ring-2" style="border-color: #fbbf24;">
+     <div class="flex gap-3"><button id="admin-cancel-btn" class="flex-1 py-2.5 rounded-xl font-bold border-2" style="border-color: #d6d3d1; color: #57534e;">취소</button> <button id="admin-login-btn" class="flex-1 py-2.5 rounded-xl font-bold text-white shadow-md" style="background-color: #dc2626;">로그인</button>
+     </div>
+     <div id="admin-message" class="hidden text-center text-xs font-semibold p-2 rounded" style="background-color: #fee2e2; color: #991b1b;"></div>
+    </div>
+   </div>
+  </div><!-- Admin Delete Modal -->
+  <div id="admin-delete-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop" style="background-color: rgba(0,0,0,0.5);">
+   <div class="modal-content bg-white rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden">
+    <div class="px-6 py-4 border-b-2 border-dashed flex items-center justify-between" style="background-color: #fef3c7; border-color: #fbbf24;">
+     <h2 class="handwriting text-2xl font-bold" style="color: #7c2d12;">🗑️ 게시글 삭제</h2><button id="admin-delete-close" class="p-1.5 rounded-full hover:bg-black/10" aria-label="닫기"> <i data-lucide="x" class="w-5 h-5" style="color: #7c2d12;"></i> </button>
+    </div>
+    <div id="admin-delete-list" class="max-h-96 overflow-y-auto p-4 space-y-2"></div>
+    <div class="px-6 py-4 border-t-2 border-dashed text-center" style="border-color: #fbbf24;"><button id="admin-logout-btn" class="px-4 py-2 rounded-lg font-semibold text-sm" style="background-color: #d6d3d1; color: #57534e;">로그아웃</button>
+    </div>
+   </div>
+  </div>
+  <script>
+(async function() {
+  const defaultConfig = {
+    board_title: '시험 핵심 개념 공유 게시판',
+    board_subtitle: '친구들과 함께 중요한 개념을 나눠보세요 ✏️',
+    post_button_text: '개념 올리기'
+  };
+
+  const SUBJECT_STYLES = {
+    '국어': { bg: '#ffe4e6', border: '#fb7185', text: '#9f1239', accent: '#be123c', emoji: '📖', rotate: '-1.5deg' },
+    '영어': { bg: '#dbeafe', border: '#60a5fa', text: '#1e40af', accent: '#1d4ed8', emoji: '🔤', rotate: '1.2deg' },
+    '수학': { bg: '#dcfce7', border: '#4ade80', text: '#166534', accent: '#15803d', emoji: '🔢', rotate: '-1deg' },
+    '과학': { bg: '#fef3c7', border: '#fbbf24', text: '#854d0e', accent: '#a16207', emoji: '🔬', rotate: '1.5deg' }
+  };
+
+  let allPosts = [];
+  let currentFilter = '전체';
+  let currentSort = 'latest'; // 'latest' or 'popular'
+  let likedIds = new Set(JSON.parse(localStorage.getItem('likedPostIds') || '[]'));
+  let isAdminLoggedIn = false;
+  const DATA_LIMIT = 999;
+  const ADMIN_PASSWORD = '2026';
+
+  // --- Element SDK setup ---
+  function applyConfig(config) {
+    document.getElementById('board-title-el').textContent = config.board_title || defaultConfig.board_title;
+    document.getElementById('board-subtitle-el').textContent = config.board_subtitle || defaultConfig.board_subtitle;
+    document.getElementById('post-btn-text').textContent = config.post_button_text || defaultConfig.post_button_text;
+  }
+
+  if (window.elementSdk) {
+    window.elementSdk.init({
+      defaultConfig,
+      onConfigChange: async (config) => { applyConfig(config); },
+      mapToCapabilities: () => ({
+        recolorables: [],
+        borderables: [],
+        fontEditable: undefined,
+        fontSizeable: undefined
+      }),
+      mapToEditPanelValues: (config) => new Map([
+        ['board_title', config.board_title || defaultConfig.board_title],
+        ['board_subtitle', config.board_subtitle || defaultConfig.board_subtitle],
+        ['post_button_text', config.post_button_text || defaultConfig.post_button_text]
+      ])
+    });
+    applyConfig(window.elementSdk.config || defaultConfig);
+  }
+
+  // --- Data SDK setup ---
+  const dataHandler = {
+    onDataChanged(data) {
+      allPosts = data.slice().sort((a, b) => {
+        const ta = new Date(a.createdAt || 0).getTime();
+        const tb = new Date(b.createdAt || 0).getTime();
+        return tb - ta;
+      });
+      renderPosts();
+      updateStats();
+    }
+  };
+
+  const initResult = await window.dataSdk.init(dataHandler);
+  if (!initResult.isOk) {
+    showToast('데이터를 불러오는데 실패했어요', 'error');
+  }
+
+  // --- Rendering ---
+  function renderPosts() {
+    const container = document.getElementById('posts-container');
+    const emptyState = document.getElementById('empty-state');
+
+    let filtered = currentFilter === '전체'
+      ? allPosts.slice()
+      : allPosts.filter(p => p.subject === currentFilter);
+
+    // Apply sorting
+    if (currentSort === 'popular') {
+      filtered.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+    } else {
+      filtered.sort((a, b) => {
+        const ta = new Date(a.createdAt || 0).getTime();
+        const tb = new Date(b.createdAt || 0).getTime();
+        return tb - ta;
+      });
+    }
+
+    if (filtered.length === 0) {
+      container.innerHTML = '';
+      emptyState.classList.remove('hidden');
+      return;
+    }
+    emptyState.classList.add('hidden');
+
+    // Selective update: track by __backendId
+    const existing = new Map();
+    [...container.children].forEach(el => existing.set(el.dataset.id, el));
+
+    const fragment = document.createDocumentFragment();
+    filtered.forEach((post, idx) => {
+      const id = post.__backendId;
+      let el = existing.get(id);
+      if (el) {
+        updatePostElement(el, post);
+        existing.delete(id);
+        fragment.appendChild(el);
+      } else {
+        fragment.appendChild(createPostElement(post, idx));
+      }
+    });
+
+    existing.forEach(el => el.remove());
+    container.innerHTML = '';
+    container.appendChild(fragment);
+
+    lucide.createIcons();
+  }
+
+  function createPostElement(post, idx) {
+    const style = SUBJECT_STYLES[post.subject] || SUBJECT_STYLES['국어'];
+    const rotate = (idx % 2 === 0) ? style.rotate : `-${style.rotate}`;
+    const article = document.createElement('article');
+    article.className = 'post-card fade-in relative rounded-xl p-5 pt-6 paper-texture shadow-md';
+    article.dataset.id = post.__backendId;
+    article.style.cssText = `background-color: ${style.bg}; border: 2px solid ${style.border}; transform: rotate(${rotate});`;
+    article.innerHTML = `
+      <div class="tape"></div>
+      <div class="flex items-center justify-between mb-3">
+        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold" style="background-color: ${style.accent}; color: white;">
+          <span>${style.emoji}</span><span>${escapeHtml(post.subject)}</span>
+        </span>
+        <div class="flex items-center gap-2">
+          <span class="text-xs" style="color: ${style.text}; opacity: 0.7;">${formatDate(post.createdAt)}</span>
+          ${isAdminLoggedIn ? `<button class="admin-delete-btn p-1 rounded-full hover:bg-black/10 transition-all" data-post-id="${post.__backendId}" aria-label="삭제"><i data-lucide="trash-2" class="w-3.5 h-3.5" style="color: #dc2626;"></i></button>` : ''}
+        </div>
+      </div>
+      <h3 class="handwriting text-xl sm:text-2xl font-bold mb-2 leading-tight" style="color: ${style.text};">${escapeHtml(post.title)}</h3>
+      <p class="text-sm leading-relaxed mb-4 whitespace-pre-wrap" style="color: ${style.text};">${escapeHtml(post.content)}</p>
+      <div class="flex items-center justify-between pt-3 border-t border-dashed" style="border-color: ${style.border};">
+        <span class="text-xs font-semibold flex items-center gap-1" style="color: ${style.text};">
+          <i data-lucide="user" class="w-3 h-3"></i>
+          ${escapeHtml(post.author)}
+        </span>
+        <button class="like-btn flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold transition-all relative"
+          style="background-color: ${likedIds.has(post.__backendId) ? style.accent : 'white'}; color: ${likedIds.has(post.__backendId) ? 'white' : style.accent}; border: 1.5px solid ${style.accent};"
+          aria-label="좋아요">
+          <i data-lucide="heart" class="w-4 h-4" ${likedIds.has(post.__backendId) ? 'fill="currentColor"' : ''}></i>
+          <span class="like-count">${post.likes || 0}</span>
+        </button>
+      </div>
+    `;
+
+    const likeBtn = article.querySelector('.like-btn');
+    likeBtn.addEventListener('click', () => handleLike(post, likeBtn));
+
+    const deleteBtn = article.querySelector('.admin-delete-btn');
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', () => deletePost(post));
+    }
+
+    return article;
+  }
+
+  function updatePostElement(el, post) {
+    const style = SUBJECT_STYLES[post.subject] || SUBJECT_STYLES['국어'];
+    const isLiked = likedIds.has(post.__backendId);
+    const likeBtn = el.querySelector('.like-btn');
+    const countEl = el.querySelector('.like-count');
+    if (countEl) countEl.textContent = post.likes || 0;
+    if (likeBtn) {
+      likeBtn.style.backgroundColor = isLiked ? style.accent : 'white';
+      likeBtn.style.color = isLiked ? 'white' : style.accent;
+      const icon = likeBtn.querySelector('[data-lucide="heart"], svg');
+      if (icon && icon.tagName.toLowerCase() === 'svg') {
+        if (isLiked) icon.setAttribute('fill', 'currentColor');
+        else icon.setAttribute('fill', 'none');
+      }
+    }
+  }
+
+  function updateStats() {
+    document.getElementById('total-count').textContent = allPosts.length;
+    const totalLikes = allPosts.reduce((sum, p) => sum + (p.likes || 0), 0);
+    document.getElementById('total-likes').textContent = totalLikes;
+  }
+
+  // --- Like handling ---
+  async function handleLike(post, btn) {
+    if (btn.disabled) return;
+    const isLiked = likedIds.has(post.__backendId);
+    btn.disabled = true;
+    btn.classList.add('liked');
+
+    const newLikes = (post.likes || 0) + (isLiked ? -1 : 1);
+    const updatedPost = { ...post, likes: Math.max(0, newLikes) };
+
+    // Flying heart animation (only when liking)
+    if (!isLiked) {
+      const heart = document.createElement('span');
+      heart.className = 'heart-fly';
+      heart.style.cssText = 'left: 50%; top: 0; font-size: 20px;';
+      heart.textContent = '❤️';
+      btn.appendChild(heart);
+      setTimeout(() => heart.remove(), 800);
+    }
+
+    const result = await window.dataSdk.update(updatedPost);
+    btn.disabled = false;
+    setTimeout(() => btn.classList.remove('liked'), 400);
+
+    if (result.isOk) {
+      if (isLiked) likedIds.delete(post.__backendId);
+      else likedIds.add(post.__backendId);
+      localStorage.setItem('likedPostIds', JSON.stringify([...likedIds]));
+    } else {
+      showToast('좋아요를 저장하지 못했어요', 'error');
+    }
+  }
+
+  // --- Tab filter ---
+  document.querySelectorAll('.subject-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.subject-tab').forEach(t => {
+        t.classList.remove('active');
+        const s = t.dataset.subject;
+        if (s === '전체') {
+          t.style.backgroundColor = 'white';
+          t.style.color = '#7c2d12';
+        } else {
+          const style = SUBJECT_STYLES[s];
+          t.style.backgroundColor = 'white';
+          t.style.color = style.accent;
+        }
+      });
+      tab.classList.add('active');
+      const s = tab.dataset.subject;
+      if (s === '전체') {
+        tab.style.backgroundColor = '#7c2d12';
+        tab.style.color = '#fef9e7';
+      } else {
+        const style = SUBJECT_STYLES[s];
+        tab.style.backgroundColor = style.accent;
+        tab.style.color = 'white';
+      }
+      currentFilter = s;
+      renderPosts();
+    });
+  });
+
+  // --- Sort button handler ---
+  document.getElementById('sort-btn').addEventListener('click', () => {
+    currentSort = currentSort === 'latest' ? 'popular' : 'latest';
+    const label = document.getElementById('sort-label');
+    label.textContent = currentSort === 'latest' ? '최신순' : '인기순';
+    renderPosts();
+  });
+
+  // --- Admin Login ---
+  function openAdminModal() {
+    document.getElementById('admin-modal').classList.remove('hidden');
+    document.getElementById('admin-password-input').value = '';
+    document.getElementById('admin-message').classList.add('hidden');
+  }
+
+  function closeAdminModal() {
+    document.getElementById('admin-modal').classList.add('hidden');
+  }
+
+  document.getElementById('admin-btn').addEventListener('click', openAdminModal);
+  document.getElementById('admin-cancel-btn').addEventListener('click', closeAdminModal);
+  document.getElementById('admin-modal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('admin-modal')) closeAdminModal();
+  });
+
+  document.getElementById('admin-login-btn').addEventListener('click', () => {
+    const pwd = document.getElementById('admin-password-input').value;
+    const msg = document.getElementById('admin-message');
+    if (pwd === ADMIN_PASSWORD) {
+      isAdminLoggedIn = true;
+      closeAdminModal();
+      openAdminDeleteModal();
+      renderPosts();
+    } else {
+      msg.classList.remove('hidden');
+      msg.textContent = '비밀번호가 틀렸어요';
+    }
+  });
+
+  document.getElementById('admin-password-input').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') document.getElementById('admin-login-btn').click();
+  });
+
+  // --- Admin Delete Modal ---
+  function openAdminDeleteModal() {
+    const modal = document.getElementById('admin-delete-modal');
+    const list = document.getElementById('admin-delete-list');
+    list.innerHTML = '';
+
+    if (allPosts.length === 0) {
+      list.innerHTML = '<div class="text-center py-6 text-gray-500">삭제할 게시글이 없어요</div>';
+    } else {
+      allPosts.forEach(post => {
+        const style = SUBJECT_STYLES[post.subject] || SUBJECT_STYLES['국어'];
+        const item = document.createElement('div');
+        item.className = 'flex items-center justify-between p-3 rounded-lg border-2' ;
+        item.style.cssText = `background-color: ${style.bg}; border-color: ${style.border};`;
+        item.innerHTML = `
+          <div class="flex-1 min-w-0">
+            <p class="font-bold text-sm truncate" style="color: ${style.text};">${escapeHtml(post.title)}</p>
+            <p class="text-xs opacity-75" style="color: ${style.text};">${escapeHtml(post.author)} • ${post.likes || 0}❤️</p>
+          </div>
+          <button class="flex-shrink-0 ml-2 p-1.5 rounded-full hover:bg-black/10 transition-all">
+            <i data-lucide="trash-2" class="w-4 h-4" style="color: #dc2626;"></i>
+          </button>
+        `;
+        const delBtn = item.querySelector('button');
+        delBtn.addEventListener('click', () => deletePost(post));
+        list.appendChild(item);
+      });
+    }
+    lucide.createIcons();
+    modal.classList.remove('hidden');
+  }
+
+  function closeAdminDeleteModal() {
+    document.getElementById('admin-delete-modal').classList.add('hidden');
+  }
+
+  document.getElementById('admin-delete-close').addEventListener('click', closeAdminDeleteModal);
+  document.getElementById('admin-delete-modal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('admin-delete-modal')) closeAdminDeleteModal();
+  });
+
+  document.getElementById('admin-logout-btn').addEventListener('click', () => {
+    isAdminLoggedIn = false;
+    closeAdminDeleteModal();
+    renderPosts();
+    showToast('로그아웃되었어요', 'success');
+  });
+
+  // --- Delete Post ---
+  async function deletePost(post) {
+    if (!isAdminLoggedIn) return;
+    const result = await window.dataSdk.delete(post);
+    if (result.isOk) {
+      showToast('게시글이 삭제되었어요', 'success');
+      openAdminDeleteModal();
+    } else {
+      showToast('삭제 실패. 다시 시도해주세요', 'error');
+    }
+  }
+
+  document.getElementById('content-input').addEventListener('input', (e) => {
+    document.getElementById('char-count').textContent = e.target.value.length;
+  });
+
+  // --- Modal ---
+  const modal = document.getElementById('post-modal');
+  const form = document.getElementById('post-form');
+
+  function openModal() {
+    if (allPosts.length >= DATA_LIMIT) {
+      showToast(`최대 ${DATA_LIMIT}개까지 올릴 수 있어요`, 'error');
+      return;
+    }
+    modal.classList.remove('hidden');
+    form.reset();
+    document.getElementById('char-count').textContent = '0';
+    updateSubjectChoiceStyles();
+  }
+  function closeModal() {
+    modal.classList.add('hidden');
+  }
+
+  document.getElementById('new-post-btn').addEventListener('click', openModal);
+  document.getElementById('close-modal').addEventListener('click', closeModal);
+  document.getElementById('cancel-btn').addEventListener('click', closeModal);
+  modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+  // Subject choice visual state
+  function updateSubjectChoiceStyles() {
+    document.querySelectorAll('.subject-choice').forEach(label => {
+      const input = label.querySelector('input');
+      const box = label.querySelector('div');
+      const val = input.value;
+      const style = SUBJECT_STYLES[val];
+      if (input.checked) {
+        box.style.backgroundColor = style.accent;
+        box.style.color = 'white';
+        box.style.borderColor = style.accent;
+      } else {
+        box.style.backgroundColor = 'white';
+        box.style.color = style.accent;
+        box.style.borderColor = style.border;
+      }
+    });
+  }
+  document.querySelectorAll('.subject-choice input').forEach(input => {
+    input.addEventListener('change', updateSubjectChoiceStyles);
+  });
+
+  // --- Form submission ---
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (allPosts.length >= DATA_LIMIT) {
+      showToast(`최대 ${DATA_LIMIT}개까지 올릴 수 있어요`, 'error');
+      return;
+    }
+
+    const submitBtn = document.getElementById('submit-btn');
+    const submitText = document.getElementById('submit-text');
+    const formData = new FormData(form);
+
+    const newPost = {
+      subject: formData.get('subject'),
+      title: formData.get('title').trim(),
+      content: formData.get('content').trim(),
+      author: formData.get('author').trim(),
+      likes: 0,
+      createdAt: new Date().toISOString()
+    };
+
+    if (!newPost.subject || !newPost.title || !newPost.content || !newPost.author) {
+      showToast('모든 항목을 입력해주세요', 'error');
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitText.innerHTML = '<span class="spinner"></span>';
+
+    const result = await window.dataSdk.create(newPost);
+
+    submitBtn.disabled = false;
+    submitText.textContent = '올리기';
+
+    if (result.isOk) {
+      closeModal();
+      showToast('개념이 올라갔어요! 🎉', 'success');
+    } else {
+      showToast('올리는데 실패했어요. 다시 시도해주세요', 'error');
+    }
+  });
+
+  // --- Toast ---
+  function showToast(message, type = 'success') {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = 'toast px-5 py-3 rounded-full shadow-lg text-white font-semibold text-sm pointer-events-auto';
+    toast.style.backgroundColor = type === 'error' ? '#dc2626' : '#16a34a';
+    toast.textContent = message;
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 2600);
+  }
+
+  // --- Helpers ---
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[c]));
+  }
+
+  function formatDate(iso) {
+    if (!iso) return '';
+    const date = new Date(iso);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMin = Math.floor(diffMs / 60000);
+    const diffHr = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHr / 24);
+    if (diffMin < 1) return '방금 전';
+    if (diffMin < 60) return `${diffMin}분 전`;
+    if (diffHr < 24) return `${diffHr}시간 전`;
+    if (diffDay < 7) return `${diffDay}일 전`;
+    return `${date.getMonth() + 1}/${date.getDate()}`;
+  }
+
+  lucide.createIcons();
+})();
+</script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9f2a9e4d80b5eaa6',t:'MTc3NzI1OTI2MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
