@@ -1,0 +1,479 @@
+<h2 class="sr-only">Idiom maze escape game with verified reachable maze layout containing 13 chests and an exit.</h2>
+
+<div id="game-root" style="font-family: var(--font-sans); padding: 1rem 0;">
+
+  <div id="header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <span style="font-size: 18px; font-weight: 500;"><i class="ti ti-treasure-chest" aria-hidden="true"></i> Idiom Escape</span>
+      <span id="status-badge" style="font-size: 12px; padding: 4px 10px; border-radius: 999px; background: var(--color-background-info); color: var(--color-text-info);">Find the chests!</span>
+    </div>
+    <div style="display: flex; gap: 12px; align-items: center; font-size: 13px;">
+      <span><i class="ti ti-gift" aria-hidden="true"></i> <span id="chest-count">0</span>/13</span>
+      <span><i class="ti ti-check" aria-hidden="true"></i> <span id="correct-count">0</span></span>
+      <button id="reset-btn" style="font-size: 12px; padding: 4px 10px;"><i class="ti ti-refresh" aria-hidden="true"></i> Reset</button>
+    </div>
+  </div>
+
+  <div id="instructions" style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 12px; padding: 8px 12px; background: var(--color-background-secondary); border-radius: var(--border-radius-md);">
+    <i class="ti ti-arrows-move" aria-hidden="true"></i> Use <b>arrow keys</b> or <b>WASD</b>. Walk into <span style="color: #BA7517;"><i class="ti ti-gift" aria-hidden="true"></i> chests</span> to open them. Reach the <span style="color: #1D9E75;"><i class="ti ti-door-exit" aria-hidden="true"></i> exit</span> after opening all 13!
+  </div>
+
+  <div id="maze-wrap" style="position: relative; background: var(--color-background-secondary); border-radius: var(--border-radius-lg); padding: 12px; display: flex; justify-content: center;">
+    <canvas id="maze" width="612" height="540" style="max-width: 100%; height: auto; image-rendering: pixelated; border-radius: var(--border-radius-md); background: var(--color-background-primary);"></canvas>
+
+    <div id="quiz-overlay" style="display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.55); border-radius: var(--border-radius-lg); align-items: center; justify-content: center; padding: 20px; z-index: 10;">
+      <div id="quiz-card" style="background: #ffffff; color: #1a1a1a; border-radius: 12px; padding: 1.25rem 1.5rem; max-width: 480px; width: 100%; border: 0.5px solid rgba(0,0,0,0.15); animation: pop 0.25s ease-out;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+          <span style="font-size: 22px;">🎁</span>
+          <span style="font-size: 13px; color: #666;">Chest <span id="quiz-num">1</span> / 13</span>
+        </div>
+        <p style="font-size: 13px; color: #666; margin: 0 0 4px;">What does this mean?</p>
+        <p id="quiz-idiom" style="font-size: 19px; font-weight: 500; margin: 4px 0 14px; color: #185FA5;">It's raining cats and dogs.</p>
+        <div id="quiz-options" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        <div id="quiz-feedback" style="margin-top: 12px; font-size: 14px; min-height: 22px; color: #1a1a1a;"></div>
+        <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+          <button id="quiz-next" style="display: none; background: #ffffff; color: #1a1a1a; border: 0.5px solid rgba(0,0,0,0.3); padding: 6px 14px; border-radius: 8px; font-size: 14px; cursor: pointer;">Continue <i class="ti ti-arrow-right" aria-hidden="true"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <div id="win-overlay" style="display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.65); border-radius: var(--border-radius-lg); align-items: center; justify-content: center; padding: 16px; z-index: 10; overflow-y: auto;">
+      <div style="max-width: 460px; width: 100%; display: flex; flex-direction: column; gap: 10px;">
+
+        <div id="scorecard" style="background: #ffffff; color: #1a1a1a; border-radius: 12px; padding: 1.5rem; border: 0.5px solid rgba(0,0,0,0.15); animation: pop 0.3s ease-out;">
+          <div style="text-align: center; margin-bottom: 14px;">
+            <div style="font-size: 44px; line-height: 1;">🏆</div>
+            <h2 style="margin: 6px 0 2px; color: #1a1a1a; font-size: 22px;">You escaped!</h2>
+            <p style="font-size: 12px; color: #666; margin: 0;">Idiom Escape · 중3 영어</p>
+          </div>
+
+          <div style="display: flex; justify-content: space-around; padding: 12px 8px; background: #FAEEDA; border-radius: 8px; margin-bottom: 14px;">
+            <div style="text-align: center;">
+              <div style="font-size: 11px; color: #854F0B; margin-bottom: 2px;">SCORE</div>
+              <div style="font-size: 28px; font-weight: 500; color: #854F0B; line-height: 1;"><span id="sc-correct">13</span><span style="font-size: 16px; color: #BA7517;">/13</span></div>
+            </div>
+            <div style="text-align: center;">
+              <div style="font-size: 11px; color: #854F0B; margin-bottom: 2px;">정답률</div>
+              <div style="font-size: 28px; font-weight: 500; color: #854F0B; line-height: 1;"><span id="sc-percent">100</span><span style="font-size: 16px; color: #BA7517;">%</span></div>
+            </div>
+            <div style="text-align: center;">
+              <div style="font-size: 11px; color: #854F0B; margin-bottom: 2px;">등급</div>
+              <div style="font-size: 28px; font-weight: 500; color: #854F0B; line-height: 1;" id="sc-grade">S</div>
+            </div>
+          </div>
+
+          <p id="sc-message" style="font-size: 14px; margin: 0 0 12px; color: #1a1a1a; text-align: center;"></p>
+
+          <div style="border-top: 0.5px solid rgba(0,0,0,0.15); padding-top: 12px;">
+            <div style="font-size: 13px; color: #666; margin-bottom: 8px; font-weight: 500;">문제별 결과</div>
+            <div id="sc-grid" style="display: grid; grid-template-columns: repeat(13, 1fr); gap: 4px; margin-bottom: 10px;"></div>
+            <div id="sc-wrong-list" style="font-size: 12px; color: #666; line-height: 1.6;"></div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 8px; justify-content: center;">
+          <button id="save-img-btn" style="background: #1D9E75; color: #ffffff; border: none; padding: 9px 16px; border-radius: 8px; font-size: 14px; cursor: pointer; font-family: inherit; font-weight: 500;"><i class="ti ti-download" aria-hidden="true"></i> 이미지로 저장</button>
+          <button id="win-reset" style="background: #ffffff; color: #1a1a1a; border: 0.5px solid rgba(0,0,0,0.3); padding: 9px 16px; border-radius: 8px; font-size: 14px; cursor: pointer; font-family: inherit;"><i class="ti ti-refresh" aria-hidden="true"></i> 다시 하기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="dpad" style="display: grid; grid-template-columns: repeat(3, 56px); grid-template-rows: repeat(3, 44px); gap: 6px; justify-content: center; margin-top: 12px;">
+    <div></div>
+    <button class="dir-btn" data-dir="up"><i class="ti ti-arrow-up" aria-hidden="true"></i></button>
+    <div></div>
+    <button class="dir-btn" data-dir="left"><i class="ti ti-arrow-left" aria-hidden="true"></i></button>
+    <div></div>
+    <button class="dir-btn" data-dir="right"><i class="ti ti-arrow-right" aria-hidden="true"></i></button>
+    <div></div>
+    <button class="dir-btn" data-dir="down"><i class="ti ti-arrow-down" aria-hidden="true"></i></button>
+    <div></div>
+  </div>
+
+</div>
+
+<style>
+@keyframes pop { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.dir-btn { font-size: 18px; padding: 0; display: flex; align-items: center; justify-content: center; }
+.opt-btn { text-align: left; padding: 10px 14px; font-size: 14px; line-height: 1.4; border: 0.5px solid rgba(0,0,0,0.2); background: #ffffff; color: #1a1a1a; border-radius: 8px; cursor: pointer; transition: background 0.15s; width: 100%; display: flex; align-items: center; gap: 10px; font-family: inherit; }
+.opt-btn:hover:not(:disabled) { background: #f5f5f0; }
+.opt-btn:disabled { cursor: default; }
+.opt-emoji { font-size: 20px; flex-shrink: 0; }
+.opt-correct { background: #E1F5EE !important; color: #0F6E56 !important; border-color: #1D9E75 !important; }
+.opt-wrong { background: #FCEBEB !important; color: #A32D2D !important; border-color: #E24B4A !important; }
+#quiz-next:hover { background: #f5f5f0 !important; }
+#win-reset:hover { background: #f5f5f0 !important; }
+#save-img-btn:hover { background: #0F6E56 !important; }
+.sc-cell { aspect-ratio: 1; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; }
+.sc-cell-correct { background: #1D9E75; color: #ffffff; }
+.sc-cell-wrong { background: #E24B4A; color: #ffffff; }
+</style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+(function() {
+  const IDIOMS = [
+    { idiom: "It's raining cats and dogs.", correct: { emoji: "🌧️", text: "비가 엄청 많이 와요!" }, wrongs: [ { emoji: "🐱", text: "고양이랑 강아지가 싸워요." }, { emoji: "☀️", text: "오늘은 날씨가 맑아요." }, { emoji: "🐕", text: "강아지를 키우고 싶어요." } ] },
+    { idiom: "It is on me.", correct: { emoji: "💳", text: "내가 살게! 내가 계산할게!" }, wrongs: [ { emoji: "📦", text: "내 위에 뭐가 있어요." }, { emoji: "👕", text: "지금 입고 있어요." }, { emoji: "🧹", text: "내가 청소할 차례야." } ] },
+    { idiom: "It is my cup of tea.", correct: { emoji: "💖", text: "내가 정말 좋아하는 거야!" }, wrongs: [ { emoji: "🍵", text: "지금 차를 마시는 중이에요." }, { emoji: "☕", text: "커피가 더 좋아요." }, { emoji: "🥤", text: "이 컵은 내 거예요." } ] },
+    { idiom: "I feel under the weather.", correct: { emoji: "🤒", text: "몸이 좀 안 좋아요." }, wrongs: [ { emoji: "🌈", text: "비 오는 날이 좋아요!" }, { emoji: "💪", text: "오늘 너무 힘이 넘쳐요!" }, { emoji: "☂️", text: "우산 밑에 서 있어요." } ] },
+    { idiom: "I'll keep my fingers crossed for you.", correct: { emoji: "🍀", text: "행운을 빌어줄게!" }, wrongs: [ { emoji: "😡", text: "너한테 화났어!" }, { emoji: "🤚", text: "손가락이 아파요." }, { emoji: "🔢", text: "손가락으로 숫자를 세요." } ] },
+    { idiom: "I'll keep in touch.", correct: { emoji: "📱", text: "계속 연락하고 지내자!" }, wrongs: [ { emoji: "✋", text: "또 만져볼게요." }, { emoji: "📦", text: "물건을 잘 보관할게요." }, { emoji: "❓", text: "느낌이 어땠는지 잊어버렸어요." } ] },
+    { idiom: "Make a long face.", correct: { emoji: "😞", text: "시무룩한 얼굴을 해요." }, wrongs: [ { emoji: "😄", text: "활짝 웃어요!" }, { emoji: "😲", text: "깜짝 놀란 표정이에요." }, { emoji: "🤸", text: "얼굴 근육을 늘려요." } ] },
+    { idiom: "Break a leg!", correct: { emoji: "🍀", text: "행운을 빌어! 잘해!" }, wrongs: [ { emoji: "🦴", text: "다리를 다치라는 뜻이에요." }, { emoji: "⚠️", text: "조심해서 넘어지지 마세요." }, { emoji: "😴", text: "다리 좀 쉬게 해줘요." } ] },
+    { idiom: "I'm in hot water.", correct: { emoji: "😰", text: "나 큰일났어! 곤란해!" }, wrongs: [ { emoji: "🛁", text: "뜨거운 물에 목욕 중이에요." }, { emoji: "🍲", text: "뜨거운 요리를 하고 있어요." }, { emoji: "🥵", text: "지금 너무 더워요." } ] },
+    { idiom: "It's a piece of cake.", correct: { emoji: "👌", text: "완전 쉬워! 식은 죽 먹기!" }, wrongs: [ { emoji: "🍰", text: "케이크가 먹고 싶어요." }, { emoji: "🍪", text: "조그만 디저트예요." }, { emoji: "😋", text: "정말 맛있는 음식이에요." } ] },
+    { idiom: "You're pulling my leg.", correct: { emoji: "😆", text: "너 나 놀리는 거지? 농담이지?" }, wrongs: [ { emoji: "🦵", text: "내 다리를 잡아당겨요." }, { emoji: "🤝", text: "일어나도록 도와줘요." }, { emoji: "😐", text: "너무 진지하게 말해요." } ] },
+    { idiom: "We pigged out.", correct: { emoji: "🍽️", text: "우리 너무 많이 먹었어!" }, wrongs: [ { emoji: "🐷", text: "농장에서 돼지를 봤어요." }, { emoji: "🤢", text: "우리 정말 지저분했어요." }, { emoji: "🙅", text: "아무것도 안 먹었어요." } ] },
+    { idiom: "We see eye to eye.", correct: { emoji: "🤝", text: "우리 생각이 똑같아!" }, wrongs: [ { emoji: "👀", text: "서로 눈을 쳐다봐요." }, { emoji: "🎨", text: "눈 색깔이 똑같아요." }, { emoji: "💢", text: "완전히 의견이 달라요." } ] }
+  ];
+
+  // Verified maze: 17 cols x 15 rows. All 13 chests + exit reachable from start.
+  // 0=wall, 1=path, 2=chest, 3=exit, 4=start
+  const MAZE_RAW = [
+    "41111101111101110",
+    "00010101000101010",
+    "11110121111101210",
+    "10000100000100010",
+    "10111111212111110",
+    "10100010000100010",
+    "12101110111101110",
+    "10101000100000010",
+    "10101011112112110",
+    "10001010100000010",
+    "11111110111110110",
+    "10000210000000110",
+    "10212111121121210",
+    "10100000100000000",
+    "11111111111111113"
+  ];
+
+  const COLS = 17, ROWS = 15;
+  const CELL = 36;
+
+  let maze, player, chestIndex, openedChests, correctCount, currentChestId, awaitingNext, gameWon, results;
+
+  function init() {
+    maze = MAZE_RAW.map(r => r.split('').map(Number));
+    chestIndex = {};
+    let idx = 0;
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        if (maze[r][c] === 2) {
+          chestIndex[`${r},${c}`] = idx;
+          idx++;
+        }
+      }
+    }
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        if (maze[r][c] === 4) {
+          player = { r, c };
+        }
+      }
+    }
+    openedChests = new Set();
+    correctCount = 0;
+    currentChestId = null;
+    awaitingNext = false;
+    gameWon = false;
+    results = new Array(13).fill(null);
+    document.getElementById('chest-count').textContent = '0';
+    document.getElementById('correct-count').textContent = '0';
+    const sb = document.getElementById('status-badge');
+    sb.textContent = 'Find the chests!';
+    sb.style.background = 'var(--color-background-info)';
+    sb.style.color = 'var(--color-text-info)';
+    document.getElementById('quiz-overlay').style.display = 'none';
+    document.getElementById('win-overlay').style.display = 'none';
+    draw();
+  }
+
+  function draw() {
+    const canvas = document.getElementById('maze');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const styles = getComputedStyle(document.documentElement);
+    const wallColor = styles.getPropertyValue('--color-text-primary').trim() || '#1a1a1a';
+    const pathColor = styles.getPropertyValue('--color-background-primary').trim() || '#ffffff';
+
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const x = c * CELL, y = r * CELL;
+        const v = maze[r][c];
+        if (v === 0) {
+          ctx.fillStyle = wallColor;
+          ctx.fillRect(x, y, CELL, CELL);
+        } else {
+          ctx.fillStyle = pathColor;
+          ctx.fillRect(x, y, CELL, CELL);
+          ctx.strokeStyle = 'rgba(127,127,127,0.15)';
+          ctx.lineWidth = 0.5;
+          ctx.strokeRect(x + 0.5, y + 0.5, CELL - 1, CELL - 1);
+
+          if (v === 2) {
+            const id = chestIndex[`${r},${c}`];
+            const opened = openedChests.has(id);
+            const cx = x + CELL / 2, cy = y + CELL / 2;
+            if (opened) {
+              ctx.fillStyle = '#1D9E75';
+              ctx.beginPath();
+              ctx.arc(cx, cy, 9, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.strokeStyle = '#ffffff';
+              ctx.lineWidth = 2.5;
+              ctx.beginPath();
+              ctx.moveTo(cx - 4, cy);
+              ctx.lineTo(cx - 1, cy + 3);
+              ctx.lineTo(cx + 5, cy - 3);
+              ctx.stroke();
+            } else {
+              ctx.fillStyle = '#BA7517';
+              ctx.fillRect(cx - 11, cy - 7, 22, 14);
+              ctx.fillStyle = '#854F0B';
+              ctx.fillRect(cx - 11, cy - 7, 22, 5);
+              ctx.fillStyle = '#FAC775';
+              ctx.fillRect(cx - 2, cy - 2, 4, 5);
+            }
+          } else if (v === 3) {
+            ctx.fillStyle = '#1D9E75';
+            ctx.fillRect(x + 6, y + 4, CELL - 12, CELL - 8);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 11px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('EXIT', x + CELL / 2, y + CELL / 2);
+          } else if (v === 4) {
+            // Subtle start marker
+            ctx.fillStyle = 'rgba(55, 138, 221, 0.15)';
+            ctx.fillRect(x + 2, y + 2, CELL - 4, CELL - 4);
+          }
+        }
+      }
+    }
+
+    const px = player.c * CELL + CELL / 2;
+    const py = player.r * CELL + CELL / 2;
+    ctx.fillStyle = '#378ADD';
+    ctx.beginPath();
+    ctx.arc(px, py, 11, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(px - 3, py - 2, 1.8, 0, Math.PI * 2);
+    ctx.arc(px + 3, py - 2, 1.8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function move(dr, dc) {
+    if (gameWon || document.getElementById('quiz-overlay').style.display === 'flex') return;
+    const nr = player.r + dr;
+    const nc = player.c + dc;
+    if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) return;
+    const v = maze[nr][nc];
+    if (v === 0) return;
+    player.r = nr;
+    player.c = nc;
+    draw();
+
+    if (v === 2) {
+      const id = chestIndex[`${nr},${nc}`];
+      if (!openedChests.has(id)) {
+        openChest(id);
+      }
+    } else if (v === 3) {
+      if (openedChests.size === 13) {
+        winGame();
+      } else {
+        const remaining = 13 - openedChests.size;
+        const sb = document.getElementById('status-badge');
+        sb.textContent = `${remaining} chest${remaining > 1 ? 's' : ''} 더 열어야 해요!`;
+        sb.style.background = 'var(--color-background-warning)';
+        sb.style.color = 'var(--color-text-warning)';
+      }
+    }
+  }
+
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function openChest(id) {
+    currentChestId = id;
+    awaitingNext = false;
+    const data = IDIOMS[id];
+    document.getElementById('quiz-num').textContent = (id + 1);
+    document.getElementById('quiz-idiom').textContent = data.idiom;
+    const fb = document.getElementById('quiz-feedback');
+    fb.textContent = '';
+    fb.style.color = '#1a1a1a';
+    document.getElementById('quiz-next').style.display = 'none';
+
+    const options = shuffle([
+      { ...data.correct, isCorrect: true },
+      ...data.wrongs.map(w => ({ ...w, isCorrect: false }))
+    ]);
+    const container = document.getElementById('quiz-options');
+    container.innerHTML = '';
+    options.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.className = 'opt-btn';
+      btn.innerHTML = `<span class="opt-emoji">${opt.emoji}</span><span>${opt.text}</span>`;
+      btn.dataset.correct = opt.isCorrect ? '1' : '0';
+      btn.addEventListener('click', () => handleAnswer(btn));
+      container.appendChild(btn);
+    });
+    document.getElementById('quiz-overlay').style.display = 'flex';
+  }
+
+  function handleAnswer(btn) {
+    if (awaitingNext) return;
+    const isCorrect = btn.dataset.correct === '1';
+    const allBtns = document.querySelectorAll('.opt-btn');
+    allBtns.forEach(b => {
+      b.disabled = true;
+      if (b.dataset.correct === '1') b.classList.add('opt-correct');
+    });
+    const fb = document.getElementById('quiz-feedback');
+    if (isCorrect) {
+      fb.innerHTML = '🎉 정답! 보물상자가 열렸어요!';
+      fb.style.color = '#0F6E56';
+      correctCount++;
+      results[currentChestId] = true;
+    } else {
+      btn.classList.add('opt-wrong');
+      fb.innerHTML = '💡 아쉬워요! 초록색이 정답이에요.';
+      fb.style.color = '#A32D2D';
+      results[currentChestId] = false;
+    }
+    openedChests.add(currentChestId);
+    document.getElementById('chest-count').textContent = openedChests.size;
+    document.getElementById('correct-count').textContent = correctCount;
+    document.getElementById('quiz-next').style.display = 'inline-flex';
+    awaitingNext = true;
+  }
+
+  function closeQuiz() {
+    document.getElementById('quiz-overlay').style.display = 'none';
+    currentChestId = null;
+    awaitingNext = false;
+    const sb = document.getElementById('status-badge');
+    if (openedChests.size === 13) {
+      sb.textContent = '모두 열었어요! EXIT을 찾아가세요!';
+      sb.style.background = 'var(--color-background-success)';
+      sb.style.color = 'var(--color-text-success)';
+    } else {
+      const remaining = 13 - openedChests.size;
+      sb.textContent = `${remaining}개 상자 남았어요`;
+    }
+    draw();
+  }
+
+  function getGrade(pct) {
+    if (pct === 100) return { grade: 'S', msg: '완벽해요! 모든 idiom을 마스터했어요! 🌟' };
+    if (pct >= 90) return { grade: 'A', msg: '아주 잘했어요! 거의 다 맞췄어요! 👏' };
+    if (pct >= 75) return { grade: 'B', msg: '잘했어요! 틀린 것만 다시 복습해봐요. 💪' };
+    if (pct >= 60) return { grade: 'C', msg: '괜찮아요! 한 번 더 도전해봐요. 🌱' };
+    return { grade: 'D', msg: '다시 도전! 연습하면 다 외울 수 있어요! 📚' };
+  }
+
+  function winGame() {
+    gameWon = true;
+    const percent = Math.round((correctCount / 13) * 100);
+    const { grade, msg } = getGrade(percent);
+
+    document.getElementById('sc-correct').textContent = correctCount;
+    document.getElementById('sc-percent').textContent = percent;
+    document.getElementById('sc-grade').textContent = grade;
+    document.getElementById('sc-message').textContent = msg;
+
+    const grid = document.getElementById('sc-grid');
+    grid.innerHTML = '';
+    results.forEach((res, i) => {
+      const cell = document.createElement('div');
+      cell.className = 'sc-cell ' + (res ? 'sc-cell-correct' : 'sc-cell-wrong');
+      cell.textContent = (i + 1);
+      grid.appendChild(cell);
+    });
+
+    const wrongList = document.getElementById('sc-wrong-list');
+    const wrongIdxs = results.map((r, i) => r === false ? i : -1).filter(i => i >= 0);
+    if (wrongIdxs.length === 0) {
+      wrongList.innerHTML = '<span style="color:#0F6E56;">✨ 틀린 문제 없음 — 완벽!</span>';
+    } else {
+      wrongList.innerHTML = '<div style="font-weight:500; color:#A32D2D; margin-bottom:4px;">📝 복습할 idioms:</div>' +
+        wrongIdxs.map(i => `<div style="padding-left:8px;">${i+1}. <b>${IDIOMS[i].idiom}</b> → ${IDIOMS[i].correct.text}</div>`).join('');
+    }
+
+    document.getElementById('win-overlay').style.display = 'flex';
+  }
+
+  async function saveAsImage() {
+    const btn = document.getElementById('save-img-btn');
+    const originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="ti ti-loader" aria-hidden="true"></i> 저장 중...';
+    btn.disabled = true;
+
+    try {
+      if (typeof html2canvas === 'undefined') {
+        alert('이미지 저장 라이브러리를 불러오지 못했어요. 다시 시도해주세요.');
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
+        return;
+      }
+      const target = document.getElementById('scorecard');
+      const canvas = await html2canvas(target, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        useCORS: true,
+        logging: false
+      });
+      const link = document.createElement('a');
+      const date = new Date();
+      const dateStr = `${date.getFullYear()}${String(date.getMonth()+1).padStart(2,'0')}${String(date.getDate()).padStart(2,'0')}`;
+      link.download = `idiom-escape-score-${dateStr}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      btn.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i> 저장 완료!';
+      setTimeout(() => { btn.innerHTML = originalHtml; btn.disabled = false; }, 1500);
+    } catch (e) {
+      console.error(e);
+      alert('이미지 저장 중 오류가 발생했어요. 다시 시도해주세요.');
+      btn.innerHTML = originalHtml;
+      btn.disabled = false;
+    }
+  }
+
+  document.addEventListener('keydown', (e) => {
+    const k = e.key.toLowerCase();
+    if (['arrowup','w'].includes(k)) { e.preventDefault(); move(-1, 0); }
+    else if (['arrowdown','s'].includes(k)) { e.preventDefault(); move(1, 0); }
+    else if (['arrowleft','a'].includes(k)) { e.preventDefault(); move(0, -1); }
+    else if (['arrowright','d'].includes(k)) { e.preventDefault(); move(0, 1); }
+  });
+
+  document.querySelectorAll('.dir-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const d = btn.dataset.dir;
+      if (d === 'up') move(-1, 0);
+      else if (d === 'down') move(1, 0);
+      else if (d === 'left') move(0, -1);
+      else if (d === 'right') move(0, 1);
+    });
+  });
+
+  document.getElementById('quiz-next').addEventListener('click', closeQuiz);
+  document.getElementById('reset-btn').addEventListener('click', init);
+  document.getElementById('win-reset').addEventListener('click', init);
+  document.getElementById('save-img-btn').addEventListener('click', saveAsImage);
+
+  init();
+})();
+</script>
